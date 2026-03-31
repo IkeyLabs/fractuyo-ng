@@ -1,5 +1,5 @@
 {
-	"name": "fractuyo",
+	"name": "fractuyo-ng",
 	"version": "0.5.8",
 	"description": "Generates electronic invoices and other tax documents compliant with Sunat (Peru) standards.",
 	"main": "dist/fractuyo.min.js",
@@ -31,7 +31,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/terexor/fractuyo.git"
+		"url": "git+https://github.com/IkeyLabs/fractuyo-ng.git"
 	},
 	"keywords": [
 		"invoice",
@@ -60,9 +60,9 @@
 	"author": "Terexor",
 	"license": "ISC",
 	"bugs": {
-		"url": "https://github.com/terexor/fractuyo/issues"
+		"url": "https://github.com/IkeyLabs/fractuyo-ng/issues"
 	},
-	"homepage": "https://github.com/terexor/fractuyo#readme",
+	"homepage": "https://github.com/IkeyLabs/fractuyo-ng#readme",
 	"dependencies": {
 		"@xmldom/xmldom": "^0.9.5",
 		"asn1js": "^3.0.5",
