@@ -1,6 +1,6 @@
 {
 	"name": "fractuyo-ng",
-	"version": "0.5.9",
+	"version": "0.5.10",
 	"description": "Generates electronic invoices and other tax documents compliant with Sunat (Peru) standards.",
 	"main": "dist/fractuyo.min.js",
 	"type": "module",

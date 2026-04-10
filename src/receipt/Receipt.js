@@ -426,8 +426,12 @@ class Receipt {
 	async handleProof(zipStream, isBase64 = true, compacted = false) {
 		const zip = new JSZip()
 
+		const typeCode = String(this.#typeCode).padStart(2, "0")
+		const numeration = String(this.#numeration)
+		const zeroPattern = compacted ? `0*${numeration}` : String(this.#numeration).padStart(8, "0")
+		
 		return zip.loadAsync(zipStream, { base64: isBase64 }).then(async (zip) => {
-			return zip.file(`R-${this.#taxpayer.getIdentification().getNumber()}-${this.getId(true, compacted)}.xml`).async("string").then(async (data) => {
+			return zip.file(new RegExp(`^R-${this.#taxpayer.getIdentification().getNumber()}-${typeCode}-${this.#serie}-${zeroPattern}\\.xml$`))[0].async("string").then(async (data) => {
 				const xmlDoc = new DOMParser().parseFromString(data, "application/xml")
 
 				// Go directly to node <cbc:ResponseCode>
