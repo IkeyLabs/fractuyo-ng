@@ -33,7 +33,7 @@ For _carrier_ or _remitter_.
 
 ```javascript
 // needed classes
-import { Invoice, Person, Taxpayer, Identification } from "fractuyo";
+import { Cdr, Invoice, Person, Taxpayer, Identification } from "fractuyo";
 
 const customer = new Person();
 customer.setName("George A. Garro");
@@ -82,7 +82,10 @@ const serverZipStream = await receipt.declare(zipStream);
 // also for despatch use receipt.handleTicket()
 // save server answer
 
-const [ serverCode, serverDescription ] = await receipt.handleProof(serverZipStream);
+const cdr = await receipt.handleCdr(serverZipStream);
+if (cdr.getCategory() == Cdr.ACCEPTED) {
+  console.log("Document accepted.");
+}
 ```
 
 ### Endpoints
