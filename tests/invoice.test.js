@@ -2,7 +2,7 @@ import test from 'ava'
 import fs from 'node:fs'
 import { Application } from "xmldsigjs"
 
-import { Invoice, Item, Share, Charge, DocumentReference, Person, Taxpayer, Identification, Address } from '../src/fractuyo.js'
+import { Cdr, Invoice, Item, Share, Charge, DocumentReference, Person, Taxpayer, Identification, Address } from '../src/fractuyo.js'
 
 let customer
 let taxpayer
@@ -143,9 +143,9 @@ test.serial("presenting invoice", async tester => {
 	try {
 		const zipStream = await invoice.createZip()
 		const serverZipStream = await invoice.declare(zipStream)
-		const [serverCode, serverDescription] = await invoice.handleProof(serverZipStream)
+		const cdr = await invoice.handleCdr(serverZipStream)
 
-		tester.is(serverCode, 0)
+		tester.true(cdr.getCode() == Cdr.ACCEPTED)
 	}
 	catch (e) {
 		console.error(e)
