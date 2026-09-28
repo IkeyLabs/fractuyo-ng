@@ -436,6 +436,8 @@ class Receipt {
 
 	/**
 	 * Handle answer that is in a ZIP file.
+	 *
+	 * @deprecated
 	 * @param {string} zipStream - The zip file.
 	 * @param {boolean} isBase64 - Whether the zip file is base64.
 	 * @param {boolean} compacted - Whether the document is compacted.
