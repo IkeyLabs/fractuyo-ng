@@ -5,6 +5,7 @@ import JSZip from "jszip"
 import { DOMImplementation, DOMParser } from "@xmldom/xmldom"
 import SoapEnvelope from "./xml/SoapEnvelope.js"
 import Endpoint from "../webservice/Endpoint.js"
+import Cdr from "./Cdr.js"
 
 import DocumentReference from "./DocumentReference.js"
 
@@ -462,6 +463,37 @@ class Receipt {
 				});
 			}
 			return [-1, "No se encontró archivo XML en la constancia."];
+		})
+	}
+
+	/**
+	 * Handles and parses the Proof of Receipt (CDR) zip stream returned by SUNAT.
+	 * @param {string|ArrayBuffer} zipStream - The ZIP file containing the response XML, usually as a base64 string.
+	 * @param {boolean} [isBase64=true] - Indicates whether the input stream is encoded in base64.
+	 * @returns {Promise<Cdr>} A promise that resolves to a Cdr instance representing the status and description.
+	 */
+	async handleCdr(zipStream, isBase64 = true) {
+		const zip = new JSZip()
+
+		return zip.loadAsync(zipStream, { base64: isBase64 }).then(async (zip) => {
+			const xmlFiles = zip.file(/\.xml$/i);
+			if (xmlFiles.length > 0) {
+				return xmlFiles[0].async("string").then(async (data) => {
+					const xmlDoc = new DOMParser().parseFromString(data, "application/xml")
+
+					// Go directly to node <cbc:ResponseCode>
+					const codes = xmlDoc.getElementsByTagNameNS("urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2", "ResponseCode")
+
+					if (codes.length > 0) {
+						const description = xmlDoc.getElementsByTagNameNS("urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2", "Description")[0]?.textContent ?? "Sin descripción"
+						return new Cdr(codes[0].textContent, description)
+					}
+					else { // error
+						return new Cdr(Cdr.UNKNOWN, "No se encontró respuesta.")
+					}
+				})
+			}
+			return new Cdr(Cdr.UNKNOWN, "No se encontró archivo XML en la constancia.");
 		})
 	}
 
