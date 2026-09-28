@@ -1,3 +1,4 @@
+import Cdr from "./receipt/Cdr.js";
 import Receipt from "./receipt/Receipt.js";
 import Invoice from "./receipt/Invoice.js";
 import Note from "./receipt/Note.js";
@@ -21,6 +22,7 @@ import Port from "./shipment/Port.js"
 import Endpoint from "./webservice/Endpoint.js";
 
 export {
+	Cdr,
 	Receipt,
 	Invoice,
 	Note,
