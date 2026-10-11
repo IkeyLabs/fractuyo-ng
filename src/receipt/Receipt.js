@@ -488,7 +488,7 @@ class Receipt {
 
 					if (codes.length > 0) {
 						const description = xmlDoc.getElementsByTagNameNS("urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2", "Description")[0]?.textContent ?? "Sin descripción"
-						return new Cdr(codes[0].textContent, description)
+						return new Cdr(parseInt(codes[0].textContent), description)
 					}
 					else { // error
 						return new Cdr(Cdr.UNKNOWN, "No se encontró respuesta.")

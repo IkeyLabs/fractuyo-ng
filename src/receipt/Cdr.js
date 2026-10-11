@@ -13,11 +13,11 @@ class Cdr {
 	#description;
 
 	/**
-	 * @param {number|string} code - Response code from SUNAT.
+	 * @param {number} code - Response code from SUNAT.
 	 * @param {string} description - Response description.
 	 */
 	constructor(code, description) {
-		this.#code = parseInt(code, 10)
+		this.#code = code
 		this.#description = description
 	}
 
@@ -40,7 +40,7 @@ class Cdr {
 	/**
 	 * Categorizes the response code into a general status type
 	 * for easy evaluation in switch statements.
-	 * @returns {string} Category type: 'ACCEPTED', 'OBSERVED', 'REJECTED', 'EXCEPTION'
+	 * @returns {number} Category type: UNKNOWN, ACCEPTED, OBSERVED, REJECTED, EXCEPTION
 	 */
 	getCategory() {
 		if (this.#code === Cdr.ACCEPTED) {
