@@ -77,7 +77,7 @@ class Endpoint {
 	static #urls = [
 		{ // invoice
 			deploy: "https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService",
-			test: "https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService"
+			test: "https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService" // https://demo-ose.nubefact.com/ol-ti-itcpe/billService
 		},
 		{ // retention
 			deploy: "https://e-factura.sunat.gob.pe/ol-ti-itemision-otroscpe-gem/billService",

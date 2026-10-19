@@ -1,5 +1,7 @@
 import Receipt from "../Receipt.js"
 import PrepaidPaymentReference from "../PrepaidPaymentReference.js"
+import Summary from "../Summary.js"
+import ReceiptHeader from "../ReceiptHeader.js"
 
 /**
  * Generation of XML nodes using string literals.
@@ -14,6 +16,16 @@ import PrepaidPaymentReference from "../PrepaidPaymentReference.js"
  * - Drastically lower Garbage Collector pressure, making it ideal for high-concurrency environments.
  */
 class TagsGenerator {
+
+	// Map config to avoid structural switches or complex conditionals
+	static TAX_CONFIG = [
+		{ id: "1000", name: "IGV", type: "VAT" }, // Index 0: Gravado
+		{ id: "9997", name: "EXO", type: "VAT" }, // Index 1: Exonerado
+		{ id: "9998", name: "INA", type: "FRE" }, // Index 2: Inafecto
+		{ id: "9999", name: "OTROS CONCEPTOS DE PAGO", type: "OTH" }
+	]
+
+
 	static generateUpperWrapper(document) {
 		return `\
 <?xml version="1.0" encoding="utf-8"?>
@@ -42,9 +54,10 @@ class TagsGenerator {
 <cbc:CustomizationID>${invoice.getCustomizationId()}</cbc:CustomizationID>`
 	}
 
-	static generateIdentity(invoice) {
-		return `<cbc:ID>${invoice.getId()}</cbc:ID>`
+	static generateIdentity(invoice, compacted = false) {
+		return `<cbc:ID>${invoice.getId(compacted)}</cbc:ID>`
 	}
+	
 
 	static generateDates(invoice) {
 		const issueDate = invoice.getIssueDate()
@@ -65,12 +78,18 @@ class TagsGenerator {
 		return `${issueDateTag}${issueTimeTag}${dueDateTag}`
 	}
 
-	static generateTypeCode(invoice) {
+	/**
+	 * Generate the document type code
+	 * @param {any} invoice
+	 * @param {boolean} withListId Whether to include the listID attribute
+	 * @returns {string} The document type code XML tag
+	 */
+	static generateTypeCode(invoice, withListId=true) {
 		const typeCode = invoice.getTypeCode()
 
 		// Detraction only for B2B or B2C
 		let listIdAttr = ''
-		if (typeCode == 1 || typeCode == 3) {
+		if (withListId && (typeCode == 1 || typeCode == 3)) {
 			const listID = invoice.hasDetraction() ? '1001' : '0101'
 			listIdAttr = ` listID="${listID}"` // initial space for separation of tag
 		}
@@ -634,23 +653,21 @@ class TagsGenerator {
 		return xml
 	}
 
-	static generateTaxes(invoice) {
-		const currencyId = invoice.getCurrencyId()
-
-		// Map config to avoid structural switches or complex conditionals
-		const TAX_CONFIG = [
-			{ id: "1000", name: "IGV", type: "VAT" }, // Index 0: Gravado
-			{ id: "9997", name: "EXO", type: "VAT" }, // Index 1: Exonerado
-			{ id: "9998", name: "INA", type: "FRE" }, // Index 2: Inafecto
-			{ id: "9999", name: "OTROS CONCEPTOS DE PAGO", type: "OTH" }
-		]
-
-		// Inline string generator for individual tax subtotals
-		const createSubtotalString = (taxableValue, taxValue, schemeData) => `
+	
+	/**
+	 * Create the tax subtotal XML string
+	 * @param {string} currencyId
+	 * @param {number|null} taxableValue
+	 * @param {number} taxValue
+	 * @param {Object} schemeData
+	 * @returns {string} The tax subtotal XML string
+	 */
+	static createTaxesSubtotalString = (currencyId, taxableValue, taxValue, schemeData) => `
 		<cac:TaxSubtotal>
-			<cbc:TaxableAmount currencyID="${currencyId}">${taxableValue.toFixed(2)}</cbc:TaxableAmount>
+			${taxableValue != null ? `<cbc:TaxableAmount currencyID="${currencyId}">${taxableValue.toFixed(2)}</cbc:TaxableAmount>` : ''}
 			<cbc:TaxAmount currencyID="${currencyId}">${taxValue.toFixed(2)}</cbc:TaxAmount>
 			<cac:TaxCategory>
+				<cbc:Percent>${Number(18).toFixed(2)}</cbc:Percent>
 				<cac:TaxScheme>
 					<cbc:ID schemeName="Codigo de tributos" schemeAgencyName="PE:SUNAT" schemeURI="urn:pe:gob:sunat:cpe:see:gem:catalogos:catalogo05">${schemeData.id}</cbc:ID>
 					<cbc:Name>${schemeData.name}</cbc:Name>
@@ -659,11 +676,16 @@ class TagsGenerator {
 			</cac:TaxCategory>
 		</cac:TaxSubtotal>`
 
+
+	static generateTaxes(invoice) {
+		const currencyId = invoice.getCurrencyId()		
+
 		let subtotalBlocks = ''
 
 		// 1. Process ISC (Selective Consumption Tax) if applicable
 		if (invoice.iscAmount > 0) {
-			subtotalBlocks += createSubtotalString(
+			subtotalBlocks += TagsGenerator.createTaxesSubtotalString(
+				currencyId,
 				invoice.getNetOperationAmount(0),
 				invoice.iscAmount,
 				{ id: "2000", name: "ISC", type: "EXC" }
@@ -678,7 +700,7 @@ class TagsGenerator {
 			}
 
 			const taxValue = (i === 0) ? invoice.netIgvAmount : 0
-			subtotalBlocks += createSubtotalString(amount, taxValue, TAX_CONFIG[i])
+			subtotalBlocks += TagsGenerator.createTaxesSubtotalString(currencyId,amount, taxValue, TagsGenerator.TAX_CONFIG[i])
 		}
 
 		// 3. Wrap everything inside the core TaxTotal master element
@@ -848,6 +870,150 @@ class TagsGenerator {
 	<cbc:ResponseCode>${responseCode}</cbc:ResponseCode>
 	<cbc:Description>${description}</cbc:Description>
 </cac:DiscrepancyResponse>`
+	}
+
+	/* Methods for Summary/ReceipHeader	*/
+
+	/**
+	 * @param {Summary} summary - Summary.
+	 * @returns {string} The XML tag.
+	 */
+	static generateSupplierHeader(summary) {
+		const taxpayer = summary.getTaxpayer()
+		const identification = taxpayer.getIdentification()
+
+		return `
+			<cac:AccountingSupplierParty>
+				<cbc:CustomerAssignedAccountID>${identification.getNumber()}</cbc:CustomerAssignedAccountID>
+				<cbc:AdditionalAccountID>${identification.getType()}</cbc:AdditionalAccountID>
+				<cac:Party>
+					<cac:PartyLegalEntity>
+						<cbc:RegistrationName><![CDATA[${taxpayer.getName()}]]></cbc:RegistrationName>
+				</cac:PartyLegalEntity>
+				</cac:Party>
+			</cac:AccountingSupplierParty>
+		`
+	}
+
+	/**
+	 * @param {Summary} summary - Summary.
+	 * @returns {string} The XML tag.
+	 */
+	static generateReferenceDate(summary) {
+		return `<cbc:ReferenceDate>${Receipt.displayDate(summary.getReferenceDate())}</cbc:ReferenceDate>`
+	}
+
+	/**
+	 * @param {Summary} summary - Summary.
+	 * @returns {string} The XML tag.
+	 */
+	static generateIssueDate(summary) {
+		return `<cbc:IssueDate>${Receipt.displayDate(summary.getIssueDate())}</cbc:IssueDate>`
+	}
+
+	/**
+	 * @param {ReceiptHeader} header - ReceiptHeader.
+	 * @returns {string} The XML tag.
+	 */
+	static generateCustomerHeader(header) {
+		// Cache customer structures and type code
+		const identification = header.getCustomerIdentification()
+
+		return `\
+			 <cac:AccountingCustomerParty>
+				<cbc:CustomerAssignedAccountID>${identification.getNumber()}</cbc:CustomerAssignedAccountID>
+				<cbc:AdditionalAccountID>${identification.getType()}</cbc:AdditionalAccountID>
+			</cac:AccountingCustomerParty>
+		`
+	}
+
+	/**
+	 * @param {ReceiptHeader} header - ReceiptHeader.
+	 * @returns {string} The XML tag.
+	 */
+	static generateSatus(header) {
+		return `\
+			<cac:Status>
+				<cbc:ConditionCode>${header.getEstado()}</cbc:ConditionCode>
+			</cac:Status>
+		`
+	}
+
+	/**
+	 * @param {ReceiptHeader} header - ReceiptHeader.
+	 * @returns {string} The XML tag.
+	 */
+	static generateTotalAmmount(header) {
+		return `<sac:TotalAmount currencyID="${header.getCurrencyId()}">${header.getTotalAmount().toFixed(2)}</sac:TotalAmount>`
+	}
+
+	static genrateBillingPayment(currencyId, amount, instructionId) {
+		return `\
+			<sac:BillingPayment>
+				<cbc:PaidAmount currencyID="${currencyId}">${amount.toFixed(2)}</cbc:PaidAmount>
+				<cbc:InstructionID>${String(instructionId).padStart(2, "0")}</cbc:InstructionID>
+			</sac:BillingPayment>
+		`
+	}
+
+	/**
+	 * @param {ReceiptHeader} header - ReceiptHeader.
+	 * @returns {string} The XML tag.
+	 */
+	static generateBillingBlock(header) {
+		const blocks = []
+
+		// Total valor de venta - operaciones gravadas
+		blocks.push(
+			TagsGenerator.genrateBillingPayment(header.getCurrencyId(), header.getTotalGravadas(), 1)
+		)
+
+		// Total valor de venta - operaciones exoneradas
+		blocks.push(
+			TagsGenerator.genrateBillingPayment(header.getCurrencyId(), header.getTotalExoneradas(), 2)
+		)
+
+		// Total valor de venta - operaciones inafectas
+		blocks.push(
+			TagsGenerator.genrateBillingPayment(header.getCurrencyId(), header.getTotalInafectas(), 3)
+		)
+
+		return blocks.join("")
+	}
+
+	/**
+	 * @param {ReceiptHeader} header - ReceiptHeader.
+	 * @returns {string} The XML tag.
+	 */
+	static generateTaxesHeader(header) {
+		// TODO: Soporte par Otros tributos (sólo soporta IGV)
+		const subtotalBlock = TagsGenerator.createTaxesSubtotalString(header.getCurrencyId(), null, header.getIgv(), TagsGenerator.TAX_CONFIG[0])
+		return `\
+		<cac:TaxTotal>
+			<cbc:TaxAmount currencyID="${header.getCurrencyId()}">${header.getIgv().toFixed(2)}</cbc:TaxAmount>${subtotalBlock}
+		</cac:TaxTotal>`
+	}
+
+	/**
+	 * @param {Summary} summary - Summary.
+	 */
+	static generateSummaryLines(summary) {
+
+		const lineBlocks = []
+		
+		for(let i = 0; i < summary.getLines().length; i++) {
+			const line = summary.getLines()[i]
+			line.toXml()
+			const headerLineXML = line.xmlString
+			lineBlocks.push(`\
+				<sac:SummaryDocumentsLine>
+					<cbc:LineID>${i + 1}</cbc:LineID>
+					${headerLineXML}
+				</sac:SummaryDocumentsLine>
+			`)
+		}
+
+		return lineBlocks.join("")
 	}
 }
 

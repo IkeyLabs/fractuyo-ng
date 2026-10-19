@@ -1,6 +1,13 @@
+
+/**
+ * @typedef {import("./Identification.js").default} Identification
+ */
+
 class Person {
 	#name
 	#address
+
+	/** @type {Identification} */
 	#identification
 
 	getName() {
@@ -14,9 +21,13 @@ class Person {
 		}
 	}
 
+	/**
+	 * @param {Identification} i - Identification.
+	 */
 	setIdentification(i) {
 		this.#identification = i
 	}
+
 
 	getIdentification() {
 		return this.#identification

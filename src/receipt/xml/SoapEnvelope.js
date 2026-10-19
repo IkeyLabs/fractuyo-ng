@@ -27,6 +27,56 @@ class SoapEnvelope {
 		return xmlDoc
 	}
 
+	/**
+	 * Generates body of method sendBill.
+	 * @return XML envolope with header and body.
+	 */
+	static generateSendSummary(receipt, taxpayer, zipStream) {
+		const xmlDoc = SoapEnvelope.generateEnvelope(taxpayer)
+
+		const body = xmlDoc.createElement("soapenv:Body")
+		const sendBill = xmlDoc.createElementNS("http://service.sunat.gob.pe", "ser:sendSummary")
+
+		// main components of this body
+		const fileName = xmlDoc.createElement("fileName");
+		fileName.textContent = `${taxpayer.getIdentification().getNumber()}-${receipt.getId(true)}.zip`
+
+		const contentFile = xmlDoc.createElement("contentFile")
+		contentFile.textContent = zipStream
+
+		sendBill.appendChild(fileName)
+		sendBill.appendChild(contentFile)
+		body.appendChild(sendBill)
+
+		xmlDoc.documentElement.appendChild(body)
+
+		return xmlDoc
+	}
+
+	/**
+	 * Generates body of method getStatus.
+	 * @param {string} ticket Ticket returned by sendSummary.
+	 * @param {object} taxpayer Taxpayer with identification and SOL credentials.
+	 * @return XML envelope with header and body.
+	 */
+	static generateGetStatus(ticket, taxpayer) {
+		const xmlDoc = SoapEnvelope.generateEnvelope(taxpayer)
+
+		const body = xmlDoc.createElement("soapenv:Body")
+		const getStatus = xmlDoc.createElementNS("http://service.sunat.gob.pe", "ser:getStatus")
+
+		// main component of this body
+		const ticketNode = xmlDoc.createElement("ticket")
+		ticketNode.textContent = ticket
+
+		getStatus.appendChild(ticketNode)
+		body.appendChild(getStatus)
+
+		xmlDoc.documentElement.appendChild(body)
+
+		return xmlDoc
+	}
+
 	static generateEnvelope(taxpayer) {
 		// The main document
 		const xmlDoc = (new DOMImplementation()).createDocument("http://schemas.xmlsoap.org/soap/envelope/", "soapenv:Envelope")

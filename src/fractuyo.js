@@ -8,6 +8,9 @@ import Share from "./receipt/Share.js";
 import Charge from "./receipt/Charge.js";
 import DocumentReference from "./receipt/DocumentReference.js";
 import PrepaidPaymentReference from "./receipt/PrepaidPaymentReference.js";
+import ReceiptHeader from "./receipt/ReceiptHeader.js";
+import Summary from "./receipt/Summary.js";
+
 
 import Person from "./person/Person.js";
 import Driver from "./person/Driver.js";
@@ -32,6 +35,8 @@ export {
 	Charge,
 	DocumentReference,
 	PrepaidPaymentReference,
+	ReceiptHeader,
+	Summary,
 	Person,
 	Driver,
 	Taxpayer,
