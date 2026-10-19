@@ -143,6 +143,9 @@ Los mensajes pueden estar en español para mayor comodidad o en inglés, así co
 ```bash
 # Using npm
 npm install fractuyo
+
+# Directly from GitHub
+npm install IkeyLabs/fractuyo-ng
 ```
 
 ## Test locally

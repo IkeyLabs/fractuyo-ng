@@ -18,6 +18,10 @@ import TagsGenerator from "./xml/TagsGenerator.js"
 
 class Summary {
 
+	static STATUS_ACCEPTED = 0
+	static STATUS_IN_PROCESS = 98
+	static STATUS_WITH_ERRORS = 99
+
 	/** @type {string} */
 	#ublVersion = "2.0"
 
@@ -365,9 +369,9 @@ class Summary {
 	/**
 	 * Queries the status of a ticket returned by sendSummary.
 	 * @param {string} ticketNumber - The ticket returned by declare().
-	 * @returns {Promise<{statusCode: number, cdr: Cdr|null}>}
+	 * @returns {Promise<{statusCode: number, zipCdr64: string|null}>}
 	 *   statusCode: 0 = accepted, 98 = in process, 99 = processed with errors.
-	 *   cdr: null while in process (98) or if SUNAT sent no content.
+	 *   zipCdr64: CDR ZIP in base64, or null while in process (98) or if SUNAT sent no content.
 	 */
 	async handleTicket(ticketNumber) {
 		const SOAP_NS = "http://schemas.xmlsoap.org/soap/envelope/"
@@ -400,16 +404,9 @@ class Summary {
 		}
 
 		const statusCode = parseInt(statusCodeText)
-		const content = responseNode.getElementsByTagName("content")[0]?.textContent?.trim()
+		const zipCdr64 = responseNode.getElementsByTagName("content")[0]?.textContent?.trim() || null
 
-		// 98 = still processing, there is no CDR yet
-		if (!content) {
-			return { statusCode, cdr: null }
-		}
-
-		const cdr = await this.handleCdr(content, true)
-
-		return { statusCode, cdr }
+		return { statusCode, zipCdr64 }
 	}
 
 }

@@ -140,11 +140,20 @@ test.serial("presenting summary", async tester => {
 		const zipStream = await summary.createZip()
 
 		const ticket = await summary.declare(zipStream)
-		const { statusCode, cdr } = await summary.handleTicket(ticket)
 
-		tester.not(cdr, null, "No se obtuvo cdr")
+		const { statusCode, zipCdr64 } = await summary.handleTicket(ticket)
 
-		tester.true(cdr.getCode() == Cdr.ACCEPTED)
+		tester.is(statusCode, Summary.STATUS_ACCEPTED)
+
+		if (statusCode === Summary.STATUS_IN_PROCESS) {
+			console.log("En proceso, reintenta en unos segundos")
+		} else if (zipCdr64) {
+			// Optional: parse the CDR only if you need it
+			const cdr = await summary.handleCdr(zipCdr64, true)
+
+			tester.true(cdr.getCode() == Cdr.ACCEPTED)
+			console.log(cdr.getDescription())
+		}		
 
 	}
 	catch (e) {
