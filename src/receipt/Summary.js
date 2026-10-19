@@ -409,6 +409,15 @@ class Summary {
 		return { statusCode, zipCdr64 }
 	}
 
+	/**
+	 * Convert the document to XML string.
+	 * It includes signature node if the document was finalized.
+	 * @returns {string} The XML string.
+	 */
+	toString() {
+		return this.xmlString
+	}
+
 }
 
 
